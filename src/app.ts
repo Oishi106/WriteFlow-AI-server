@@ -17,15 +17,16 @@ import aiRoutes from './modules/ai/ai.routes';
 
 const app: Application = express();
 
-// ─── Security Middleware ───────────────────────────────────────────────────────
+// ─── Security & CORS Middleware ───────────────────────────────────────────────────
 
 app.use(helmet());
 
+// CORS কনফিগারেশন আপডেট করা হয়েছে যেন লোকালহোস্টে কোনো ঝামেলা না করে
 app.use(cors({
-  origin: config.frontendUrl,
+  origin: [config.frontendUrl || 'http://localhost:3000', 'http://localhost:3000'],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
 }));
 
 // Rate limiting
