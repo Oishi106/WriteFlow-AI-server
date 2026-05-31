@@ -24,11 +24,19 @@ app.use(helmet());
 
 // CORS কনফিগারেশন আপডেট করা হয়েছে যেন লোকালহোস্টে কোনো ঝামেলা না করে
 app.use(cors({
-  origin: [config.frontendUrl || 'http://localhost:3000', 'http://localhost:3000'],
+  origin: process.env.CLIENT_URL || 'http://localhost:3000',
   credentials: true,
+  allowedHeaders: [
+    'Content-Type',
+    'Authorization',
+    'Cache-Control',
+    'Pragma',
+    'X-Requested-With',
+  ],
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
 }));
+
+app.options('*', cors());
 
 // Rate limiting
 const limiter = rateLimit({
