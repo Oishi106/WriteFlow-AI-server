@@ -14,6 +14,7 @@ import reviewRoutes from './modules/reviews/review.routes';
 import bookingRoutes from './modules/bookings/booking.routes';
 import dashboardRoutes from './modules/dashboard/dashboard.routes';
 import aiRoutes from './modules/ai/ai.routes';
+import documentRoutes from './routes/document.routes';
 
 const app: Application = express();
 
@@ -78,6 +79,7 @@ app.use('/api/reviews', reviewRoutes);
 app.use('/api/bookings', bookingRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/ai', aiRoutes);
+app.use('/api/documents', documentRoutes);
 
 // ─── Error Handling ────────────────────────────────────────────────────────────
 

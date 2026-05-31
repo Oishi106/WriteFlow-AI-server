@@ -3,7 +3,7 @@ import { asyncHandler } from '../../utils/asyncHandler';
 import { successResponse } from '../../utils/apiResponse';
 import { authenticate, authorize } from '../../middlewares/auth.middleware';
 import { AuthRequest } from '../../types';
-import { AILog } from '../ai/aiLog.model';
+import { AILog } from '../../models/ailog.model';
 import { getChartData, getStats } from '../../controllers/dashboard.controller';
 
 const router = Router();

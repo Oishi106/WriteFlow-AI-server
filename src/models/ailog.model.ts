@@ -1,5 +1,5 @@
 import mongoose, { Schema } from 'mongoose';
-import { IAILog } from '../../types';
+import { IAILog } from '../types';
 
 const aiLogSchema = new Schema<IAILog>(
   {

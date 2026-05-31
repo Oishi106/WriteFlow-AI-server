@@ -1,5 +1,6 @@
 import { Router, Response } from 'express';
 import { Booking } from './booking.model';
+import { Item } from '../../models/item.model';
 import { AppError, asyncHandler } from '../../utils/asyncHandler';
 import { successResponse } from '../../utils/apiResponse';
 import { authenticate, authorize } from '../../middlewares/auth.middleware';
@@ -9,18 +10,26 @@ const router = Router();
 
 // POST /api/bookings
 router.post('/', authenticate, asyncHandler(async (req: AuthRequest, res: Response) => {
-  const { itemId, quantity = 1, price } = req.body;
+  const { itemId, quantity } = req.body;
+  const normalizedQuantity = quantity || 1;
 
-  const booking = await Booking.create({
+  const item = await Item.findById(itemId);
+  if (!item) throw new AppError('Item not found.', 404);
+
+  const calculatedPrice = item.price * normalizedQuantity;
+
+  const newBooking = await Booking.create({
     userId: req.user!.id,
     itemId,
-    quantity,
-    price,
-    status: 'PENDING',
+    quantity: normalizedQuantity,
+    price: calculatedPrice,
+    status: 'pending',
   });
 
-  await booking.populate(['userId', 'itemId']);
-  return successResponse(res, 'Booking created successfully.', booking, 201);
+  await Item.findByIdAndUpdate(itemId, { $inc: { usageCount: 1 } });
+
+  await newBooking.populate(['userId', 'itemId']);
+  return successResponse(res, 'Booking created', newBooking, 201);
 }));
 
 // GET /api/bookings — Admin: all, User: own

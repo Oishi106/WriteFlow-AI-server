@@ -2,7 +2,7 @@ import { Response } from 'express';
 import { User } from '../modules/users/user.model';
 import { Item } from '../models/item.model';
 import { Booking } from '../modules/bookings/booking.model';
-import { AILog } from '../modules/ai/aiLog.model';
+import { AILog } from '../models/ailog.model';
 import { asyncHandler } from '../utils/asyncHandler';
 import { successResponse } from '../utils/apiResponse';
 import { AuthRequest } from '../types';
@@ -74,7 +74,7 @@ export const getChartData = asyncHandler(async (_req: AuthRequest, res: Response
       { $match: { createdAt: { $gte: sevenDaysAgo } } },
       {
         $group: {
-          _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
+          _id: { $dayOfWeek: '$createdAt' },
           aiCalls: { $sum: 1 },
         },
       },
@@ -95,13 +95,13 @@ export const getChartData = asyncHandler(async (_req: AuthRequest, res: Response
     ]),
   ]);
 
-  const aiCallsByDate = new Map(dailyAIUsage.map((entry) => [entry._id, entry.aiCalls]));
+  const aiCallsByDayOfWeek = new Map(dailyAIUsage.map((entry) => [entry._id, entry.aiCalls]));
 
   const barChart = lastSevenDays.map((day) => {
-    const dateKey = day.toISOString().slice(0, 10);
+    const dayOfWeek = day.getDay() + 1;
     return {
       date: DAY_LABELS[day.getDay()],
-      aiCalls: aiCallsByDate.get(dateKey) ?? 0,
+      aiCalls: aiCallsByDayOfWeek.get(dayOfWeek) ?? 0,
     };
   });
 

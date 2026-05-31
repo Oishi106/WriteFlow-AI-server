@@ -1,6 +1,5 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { config } from '../../config/env';
-import { AILog } from './aiLog.model';
 
 let genAI: GoogleGenerativeAI | null = null;
 
@@ -59,21 +58,18 @@ Format your response as JSON with this structure:
   const text = result.response.text();
 
   const tokensUsed = estimateTokens(prompt + text);
-  await AILog.create({
-    userId,
-    agentUsed: 'Content Draft',
-    promptSnippet: `${contentType}: ${topic.slice(0, 100)}`,
-    tokensUsed,
-  });
 
   try {
     const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (jsonMatch) return JSON.parse(jsonMatch[0]);
+    if (jsonMatch) return { data: JSON.parse(jsonMatch[0]), tokensUsed };
   } catch {
     // Return as-is if not valid JSON
   }
 
-  return { title: topic, content: text, metaDescription: '', tags: [], wordCount: estimateTokens(text) * 4 };
+  return {
+    data: { title: topic, content: text, metaDescription: '', tags: [], wordCount: estimateTokens(text) * 4 },
+    tokensUsed,
+  };
 };
 
 // ─── Agent 2: Rewrite & Tone Agent ────────────────────────────────────────────
@@ -106,14 +102,8 @@ Return ONLY the rewritten text without any explanations or formatting markers.`;
   const rewrittenText = result.response.text();
 
   const tokensUsed = estimateTokens(prompt + rewrittenText);
-  await AILog.create({
-    userId,
-    agentUsed: 'Rewrite & Tone',
-    promptSnippet: `${action} (${tone}): ${content.slice(0, 80)}...`,
-    tokensUsed,
-  });
 
-  return { rewrittenContent: rewrittenText, tokensUsed };
+  return { data: { rewrittenContent: rewrittenText }, tokensUsed };
 };
 
 // ─── Agent 3: AI Content Chat Assistant ───────────────────────────────────────
@@ -151,14 +141,8 @@ Be concise, helpful, and actionable.`;
   const response = result.response.text();
 
   const tokensUsed = estimateTokens(fullPrompt + response);
-  await AILog.create({
-    userId,
-    agentUsed: 'Chat Assistant',
-    promptSnippet: lastMessage.content.slice(0, 100),
-    tokensUsed,
-  });
 
-  return { response, tokensUsed };
+  return { data: { response }, tokensUsed };
 };
 
 // ─── Agent 4: Review Summariser (Admin) ───────────────────────────────────────
@@ -191,21 +175,15 @@ Return a JSON object with:
   const text = result.response.text();
 
   const tokensUsed = estimateTokens(prompt + text);
-  await AILog.create({
-    userId,
-    agentUsed: 'Review Summariser',
-    promptSnippet: `Summarising ${reviews.length} reviews`,
-    tokensUsed,
-  });
 
   try {
     const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (jsonMatch) return JSON.parse(jsonMatch[0]);
+    if (jsonMatch) return { data: JSON.parse(jsonMatch[0]), tokensUsed };
   } catch {
     // fallback
   }
 
-  return { summary: [text], sentiment: 'neutral', sentimentScore: 50 };
+  return { data: { summary: [text], sentiment: 'neutral', sentimentScore: 50 }, tokensUsed };
 };
 
 // ─── Generate Description ──────────────────────────────────────────────────────
@@ -223,7 +201,6 @@ Make it engaging, specific, and highlight the value it provides.`;
   const description = result.response.text();
 
   const tokensUsed = estimateTokens(prompt + description);
-  await AILog.create({ userId, agentUsed: 'Content Draft', promptSnippet: `Description: ${title}`, tokensUsed });
 
-  return { description: description.trim(), tokensUsed };
+  return { data: { description: description.trim() }, tokensUsed };
 };

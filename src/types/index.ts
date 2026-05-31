@@ -15,7 +15,7 @@ export type ContentType =
   | 'event'
   | 'property';
 export type ContentStatus = 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
-export type BookingStatus = 'PENDING' | 'CONFIRMED' | 'CANCELLED';
+export type BookingStatus = 'pending' | 'confirmed' | 'cancelled';
 
 export interface IUser extends Document {
   _id: Types.ObjectId;
@@ -48,6 +48,17 @@ export interface IItem extends Document {
   updatedAt: Date;
 }
 
+export interface IDocument extends Document {
+  _id: Types.ObjectId;
+  title: string;
+  content: string;
+  status: ContentStatus;
+  userId: Types.ObjectId;
+  wordCount: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 export interface IReview extends Document {
   _id: Types.ObjectId;
   rating: number;
@@ -73,13 +84,14 @@ export interface IAILog extends Document {
   _id: Types.ObjectId;
   userId: Types.ObjectId;
   agentUsed: string;
-  promptSnippet: string;
+  prompt: string;
   tokensUsed: number;
   createdAt: Date;
 }
 
 export interface AuthRequest extends Request {
   user?: {
+    _id?: string;
     id: string;
     role: UserRole;
     email: string;

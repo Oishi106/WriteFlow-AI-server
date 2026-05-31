@@ -22,7 +22,7 @@ export const authenticate = (req: AuthRequest, res: Response, next: NextFunction
 
   try {
     const decoded = jwt.verify(token, config.jwt.secret) as JwtPayload;
-    req.user = { id: decoded.id, role: decoded.role, email: decoded.email };
+    req.user = { _id: decoded.id, id: decoded.id, role: decoded.role, email: decoded.email };
     next();
   } catch (error) {
     if (error instanceof jwt.TokenExpiredError) {

@@ -21,13 +21,12 @@ const bookingSchema = new Schema<IBooking>(
     },
     price: {
       type: Number,
-      required: true,
       min: 0,
     },
     status: {
       type: String,
-      enum: ['PENDING', 'CONFIRMED', 'CANCELLED'],
-      default: 'PENDING',
+      enum: ['pending', 'confirmed', 'cancelled'],
+      default: 'pending',
     },
   },
   { timestamps: true }
