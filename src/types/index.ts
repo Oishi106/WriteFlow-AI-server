@@ -4,7 +4,16 @@ import { Document, Types } from 'mongoose';
 export type UserRole = 'USER' | 'ADMIN';
 export type UserPlan = 'FREE' | 'PRO' | 'TEAM';
 export type UserStatus = 'ACTIVE' | 'BANNED';
-export type ContentType = 'blog' | 'social' | 'email' | 'ad-copy';
+export type ContentType =
+  | 'blog'
+  | 'social'
+  | 'email'
+  | 'ad-copy'
+  | 'travel'
+  | 'restaurant'
+  | 'product'
+  | 'event'
+  | 'property';
 export type ContentStatus = 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
 export type BookingStatus = 'PENDING' | 'CONFIRMED' | 'CANCELLED';
 
@@ -27,16 +36,14 @@ export interface IItem extends Document {
   _id: Types.ObjectId;
   title: string;
   description: string;
-  image?: string;
-  category: ContentType;
+  image: string;
+  price: number;
   rating: number;
-  usageCount: number;
-  tone?: string;
-  estimatedWordCount?: number;
-  aiModel?: string;
-  prompt?: string;
-  sampleOutput?: string;
+  location: string;
+  category: ContentType;
   createdBy: Types.ObjectId;
+  reviewCount: number;
+  usageCount: number;
   createdAt: Date;
   updatedAt: Date;
 }

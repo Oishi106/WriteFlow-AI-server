@@ -1,6 +1,6 @@
 import { Router, Response } from 'express';
 import { Review } from './review.model';
-import { Item } from '../items/item.model';
+import { Item } from '../../models/item.model';
 import { AppError, asyncHandler } from '../../utils/asyncHandler';
 import { successResponse } from '../../utils/apiResponse';
 import { authenticate, authorize } from '../../middlewares/auth.middleware';

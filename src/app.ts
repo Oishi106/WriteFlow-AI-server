@@ -9,7 +9,7 @@ import { errorHandler, notFound } from './middlewares/error.middleware';
 // Route imports
 import authRoutes from './modules/auth/auth.routes';
 import userRoutes from './modules/users/user.routes';
-import itemRoutes from './modules/items/item.routes';
+import itemRoutes from './routes/item.routes';
 import reviewRoutes from './modules/reviews/review.routes';
 import bookingRoutes from './modules/bookings/booking.routes';
 import dashboardRoutes from './modules/dashboard/dashboard.routes';
