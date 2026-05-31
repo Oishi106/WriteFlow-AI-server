@@ -1,113 +1,206 @@
 import { Response } from 'express';
-import * as aiService from '../modules/ai/ai.service';
+import githubAI from '../config/githubAI';
 import { AILog } from '../models/ailog.model';
 import { Review } from '../modules/reviews/review.model';
-import { AppError, asyncHandler } from '../utils/asyncHandler';
-import { successResponse } from '../utils/apiResponse';
 import { AuthRequest } from '../types';
 
-const logAILog = async (
+const writeAILog = async (
   req: AuthRequest,
-  agentUsed: 'Content Draft' | 'Rewrite & Tone' | 'Chat Assistant' | 'Review Summariser',
+  agentUsed: 'Chat Assistant' | 'Content Draft' | 'Rewrite & Tone' | 'Review Summariser',
   prompt: string,
   tokensUsed: number
 ): Promise<void> => {
-  await AILog.create({
-    userId: req.user!._id || req.user!.id,
-    agentUsed,
-    prompt: prompt.slice(0, 200),
-    tokensUsed,
-  });
+  try {
+    await AILog.create({
+      userId: req.user?._id || req.user?.id,
+      agentUsed,
+      prompt: prompt.substring(0, 200),
+      tokensUsed,
+    });
+  } catch (_) {
+    // no-op
+  }
 };
 
-export const generateContent = asyncHandler(async (req: AuthRequest, res: Response) => {
-  const { topic, tone = 'professional', targetAudience = 'general', contentType = 'blog' } = req.body;
-  if (!topic) throw new AppError('Topic is required.', 400);
+export const chat = async (req: AuthRequest, res: Response): Promise<Response> => {
+  try {
+    const { message, history } = req.body;
 
-  const result = await aiService.generateContent(topic, tone, targetAudience, contentType, req.user!.id);
-  await logAILog(
-    req,
-    'Content Draft',
-    `${contentType}: ${topic}`,
-    result.tokensUsed || 0
-  );
+    if (!message) {
+      return res.status(400).json({ success: false, message: 'Message is required' });
+    }
 
-  return successResponse(res, 'Content generated successfully.', result.data);
-});
+    const messages = [
+      {
+        role: 'system',
+        content: 'You are a helpful writing assistant for a content creation platform. Help users with writing, content ideas, travel suggestions, restaurant recommendations, and general questions.',
+      },
+      ...(history || []).map((h: { role: string; content: string }) => ({
+        role: h.role === 'ai' ? 'assistant' : 'user',
+        content: h.content,
+      })),
+      { role: 'user', content: message },
+    ];
 
-export const rewriteContent = asyncHandler(async (req: AuthRequest, res: Response) => {
-  const { content, tone = 'formal', action = 'rewrite' } = req.body;
-  if (!content) throw new AppError('Content is required.', 400);
-  if (content.length > 5000) throw new AppError('Content too long. Maximum 5000 characters.', 400);
+    const response = await githubAI.chat.completions.create({
+      model: 'openai/gpt-4o-mini',
+      messages,
+      max_tokens: 800,
+      temperature: 0.7,
+    });
 
-  const result = await aiService.rewriteContent(content, tone, action, req.user!.id);
-  await logAILog(req, 'Rewrite & Tone', content, result.tokensUsed || 0);
+    const reply = response.choices[0]?.message?.content || '';
 
-  return successResponse(res, 'Content rewritten successfully.', result.data);
-});
+    await writeAILog(
+      req,
+      'Chat Assistant',
+      (req.body.message || req.body.topic || req.body.title || req.body.text || '').substring(0, 200),
+      response.usage?.total_tokens || 0
+    );
 
-export const chatWithAssistant = asyncHandler(async (req: AuthRequest, res: Response) => {
-  const { messages, documentContext = '' } = req.body;
-  if (!messages || !Array.isArray(messages) || messages.length === 0) {
-    throw new AppError('Messages array is required.', 400);
+    return res.status(200).json({ success: true, data: { reply } });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    return res.status(500).json({ success: false, message: 'AI chat failed', error: message });
   }
+};
 
-  const result = await aiService.chatWithAssistant(messages, documentContext, req.user!.id);
-  const lastMessage = messages[messages.length - 1];
-  await logAILog(req, 'Chat Assistant', lastMessage?.content || '', result.tokensUsed || 0);
+export const generateDescription = async (req: AuthRequest, res: Response): Promise<Response> => {
+  try {
+    const { title, topic, tone, audience } = req.body;
 
-  return successResponse(res, 'Response generated successfully.', result.data);
-});
+    if (!title && !topic) {
+      return res.status(400).json({ success: false, message: 'Title or topic is required' });
+    }
 
-export const reviewSummary = asyncHandler(async (req: AuthRequest, res: Response) => {
-  const { itemId } = req.body;
+    const subject = topic || title;
+    const prompt = `You are a professional content writer. Write a detailed, engaging ${tone || 'professional'} piece of content about: "${subject}".
+Target audience: ${audience || 'general readers'}.
+Requirements:
+- Write exactly 3 well-structured paragraphs
+- Start with a compelling introduction paragraph
+- Use ${tone || 'professional'} language throughout
+- Make it original and informative
+- Do not include any meta-commentary, just the content itself`;
 
-  const query = itemId ? { itemId, approved: true } : { approved: true };
-  const reviews = await Review.find(query).select('rating comment').lean();
+    const response = await githubAI.chat.completions.create({
+      model: 'openai/gpt-4o-mini',
+      messages: [{ role: 'user', content: prompt }],
+      max_tokens: 1000,
+      temperature: 0.8,
+    });
 
-  if (reviews.length === 0) throw new AppError('No approved reviews found to summarise.', 404);
+    const content = response.choices[0]?.message?.content || '';
 
-  const result = await aiService.summariseReviews(
-    reviews.map((r) => ({ rating: r.rating, comment: r.comment })),
-    req.user!.id
-  );
+    await writeAILog(
+      req,
+      'Content Draft',
+      (req.body.message || req.body.topic || req.body.title || req.body.text || '').substring(0, 200),
+      response.usage?.total_tokens || 0
+    );
 
-  await logAILog(req, 'Review Summariser', `Review summary: ${itemId || 'all'}`, result.tokensUsed || 0);
+    return res.status(200).json({ success: true, data: { content } });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    return res.status(500).json({ success: false, message: 'Content generation failed', error: message });
+  }
+};
 
-  return successResponse(res, 'Reviews summarised successfully.', result.data);
-});
+export const rewriteContent = async (req: AuthRequest, res: Response): Promise<Response> => {
+  try {
+    const { text, tone } = req.body;
 
-export const generateDescription = asyncHandler(async (req: AuthRequest, res: Response) => {
-  const { title, category } = req.body;
-  if (!title) throw new AppError('Title is required.', 400);
+    if (!text) {
+      return res.status(400).json({ success: false, message: 'Text is required' });
+    }
 
-  const result = await aiService.generateDescription(title, category || 'general', req.user!.id);
-  await logAILog(
-    req,
-    'Content Draft',
-    `Description: ${title} (${category || 'general'})`,
-    result.tokensUsed || 0
-  );
+    const toneMap: Record<string, string> = {
+      formal: 'in a formal, professional tone',
+      casual: 'in a casual, friendly conversational tone',
+      persuasive: 'in a persuasive tone designed to motivate action',
+      friendly: 'in a warm, approachable, friendly tone',
+      shorter: 'more concisely - reduce the length by half while keeping all key points',
+      longer: 'in more detail - expand with additional examples and explanations, doubling the length',
+      'fix-grammar': 'with all grammar, spelling, punctuation, and sentence structure errors corrected',
+    };
 
-  return successResponse(res, 'Description generated successfully.', result.data);
-});
+    const instruction = toneMap[tone] || 'in a clear, professional tone';
+    const prompt = `Rewrite the following text ${instruction}. Return only the rewritten text, no explanations:\n\n${text}`;
 
-export const getHistory = asyncHandler(async (req: AuthRequest, res: Response) => {
-  const { page = '1', limit = '10', agentUsed } = req.query as Record<string, string>;
-  const skip = (Number(page) - 1) * Number(limit);
+    const response = await githubAI.chat.completions.create({
+      model: 'openai/gpt-4o-mini',
+      messages: [{ role: 'user', content: prompt }],
+      max_tokens: 800,
+      temperature: 0.7,
+    });
 
-  const query: Record<string, unknown> = { userId: req.user!._id || req.user!.id };
-  if (agentUsed) query.agentUsed = agentUsed;
+    const content = response.choices[0]?.message?.content || '';
 
-  const [logs, total] = await Promise.all([
-    AILog.find(query).skip(skip).limit(Number(limit)).sort({ createdAt: -1 }),
-    AILog.countDocuments(query),
-  ]);
+    await writeAILog(
+      req,
+      'Rewrite & Tone',
+      (req.body.message || req.body.topic || req.body.title || req.body.text || '').substring(0, 200),
+      response.usage?.total_tokens || 0
+    );
 
-  return successResponse(res, 'AI usage history retrieved.', logs, 200, {
-    page: Number(page),
-    limit: Number(limit),
-    total,
-    totalPages: Math.ceil(total / Number(limit)),
-  });
-});
+    return res.status(200).json({ success: true, data: { content } });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    return res.status(500).json({ success: false, message: 'Rewrite failed', error: message });
+  }
+};
+
+export const reviewSummary = async (req: AuthRequest, res: Response): Promise<Response> => {
+  try {
+    const { itemId, reviews } = req.body;
+
+    let fetchedReviews: Array<{ rating: number; comment: string }> = reviews || [];
+
+    if (!fetchedReviews.length) {
+      if (!itemId) {
+        return res.status(200).json({
+          success: true,
+          data: { summary: 'No reviews available to summarize.' },
+        });
+      }
+
+      fetchedReviews = await Review.find({ itemId, approved: true })
+        .select('rating comment')
+        .lean();
+    }
+
+    if (!fetchedReviews.length) {
+      return res.status(200).json({
+        success: true,
+        data: { summary: 'No reviews available to summarize.' },
+      });
+    }
+
+    const reviewLines = fetchedReviews
+      .map((r, i) => `Review ${i + 1} (${r.rating}/5 stars): ${r.comment}`)
+      .join('\n');
+
+    const prompt = `Analyze these customer reviews and provide a structured 3-bullet-point summary:\n\n${reviewLines}\n\nFormat your response as exactly 3 bullet points:\n• Overall sentiment and what customers love most\n• Main concerns or areas for improvement  \n• Key recommendation for potential customers\n\nReturn only the 3 bullet points, nothing else.`;
+
+    const response = await githubAI.chat.completions.create({
+      model: 'openai/gpt-4o-mini',
+      messages: [{ role: 'user', content: prompt }],
+      max_tokens: 400,
+      temperature: 0.7,
+    });
+
+    const summary = response.choices[0]?.message?.content || '';
+
+    await writeAILog(
+      req,
+      'Review Summariser',
+      (req.body.message || req.body.topic || req.body.title || req.body.text || '').substring(0, 200),
+      response.usage?.total_tokens || 0
+    );
+
+    return res.status(200).json({ success: true, data: { summary } });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    return res.status(500).json({ success: false, message: 'Review summary failed', error: message });
+  }
+};

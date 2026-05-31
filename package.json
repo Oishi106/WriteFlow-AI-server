@@ -7,9 +7,10 @@
     "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
     "build": "tsc",
     "start": "node dist/server.js",
-    "seed": "ts-node src/config/seed.ts"
+    "seed": "ts-node src/seed.ts"
   },
   "dependencies": {
+    "@google/generative-ai": "^0.2.1",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
@@ -20,7 +21,7 @@
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.0.3",
     "morgan": "^1.10.0",
-    "@google/generative-ai": "^0.2.1"
+    "openai": "^6.39.1"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",

@@ -13,7 +13,7 @@ import itemRoutes from './routes/item.routes';
 import reviewRoutes from './modules/reviews/review.routes';
 import bookingRoutes from './modules/bookings/booking.routes';
 import dashboardRoutes from './modules/dashboard/dashboard.routes';
-import aiRoutes from './modules/ai/ai.routes';
+import aiRoutes from './routes/ai.routes';
 import documentRoutes from './routes/document.routes';
 
 const app: Application = express();
