@@ -58,8 +58,8 @@ router.get('/history', authenticate, asyncHandler(async (req: AuthRequest, res: 
   const query: Record<string, unknown> = { userId: req.user!.id };
   if (agentUsed) query.agentUsed = agentUsed;
   const [logs, total] = await Promise.all([
-    AILog.find(query).skip(skip).limit(Number(limit)).sort({ createdAt: -1 }),
-    AILog.countDocuments(query),
+    AILog.find(query).skip(skip).limit(Number(limit)).sort({ createdAt: -1 }),              
+    AILog.countDocuments(query),                                     
   ]);
   return successResponse(res, 'AI usage history retrieved.', logs, 200, {
     page: Number(page), limit: Number(limit), total, totalPages: Math.ceil(total / Number(limit)),
