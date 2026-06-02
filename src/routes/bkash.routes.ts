@@ -101,8 +101,26 @@ const createPayment = async (req: BkashRequest, res: Response) => {
   }
 };
 
-router.post('/session', ensureBkashEnv, getBkashToken, createPayment);
-router.post('/create', ensureBkashEnv, getBkashToken, createPayment);
+// Mock mode for development
+router.post('/session', (req, res, next) => {
+  if (config.nodeEnv === 'development') {
+    return res.json({
+      success: true,
+      bkashURL: `${config.frontendUrl}/payment-success?trxID=MOCK-${Date.now()}`,
+    });
+  }
+  return ensureBkashEnv(req, res, next);
+}, getBkashToken, createPayment);
+
+router.post('/create', (req, res, next) => {
+  if (config.nodeEnv === 'development') {
+    return res.json({
+      success: true,
+      bkashURL: `${config.frontendUrl}/payment-success?trxID=MOCK-${Date.now()}`,
+    });
+  }
+  return ensureBkashEnv(req, res, next);
+}, getBkashToken, createPayment);
 
 router.get('/callback', async (req: Request, res: Response) => {
   const { paymentID, status } = req.query;
