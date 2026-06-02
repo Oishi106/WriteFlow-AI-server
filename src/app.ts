@@ -15,6 +15,7 @@ import bookingRoutes from './modules/bookings/booking.routes';
 import dashboardRoutes from './modules/dashboard/dashboard.routes';
 import aiRoutes from './routes/ai.routes';
 import documentRoutes from './routes/document.routes';
+import bkashRoutes from './routes/bkash.routes'; // ◄── bKash route import ekhan-e add kora holo
 
 const app: Application = express();
 
@@ -22,7 +23,7 @@ const app: Application = express();
 
 app.use(helmet());
 
-// CORS কনফিগারেশন আপডেট করা হয়েছে যেন লোকালহোস্টে কোনো ঝামেলা না করে
+// CORS কনফিগারেশন আপডেট করা হয়েছে যেন লোকালহোস্টে কোনো ঝামেলা না করে
 app.use(cors({
   origin: process.env.CLIENT_URL || 'http://localhost:3000',
   credentials: true,
@@ -88,6 +89,7 @@ app.use('/api/bookings', bookingRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/documents', documentRoutes);
+app.use('/api/bkash', bkashRoutes); // ◄── bKash API route path endpoint ekhane যুক্ত করা হলো
 
 // ─── Error Handling ────────────────────────────────────────────────────────────
 
