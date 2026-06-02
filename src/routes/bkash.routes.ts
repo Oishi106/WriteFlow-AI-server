@@ -15,13 +15,10 @@ const getBkashHeaders = () => ({
 
 const hasValidBkashConfig = () => {
   const { appKey, appSecret, username, password, baseUrl } = config.bkash;
-
   if (!appKey || !appSecret || !username || !password || !baseUrl) {
     return false;
   }
-
-  const joined = `${appKey}|${appSecret}|${username}|${password}|${baseUrl}`.toLowerCase();
-  return !joined.includes('sandboxtokenized');
+  return true;
 };
 
 const ensureBkashEnv = (_req: Request, res: Response, next: NextFunction) => {
@@ -31,7 +28,6 @@ const ensureBkashEnv = (_req: Request, res: Response, next: NextFunction) => {
       message: 'bKash env config missing. Set BKASH_* variables.',
     });
   }
-
   next();
 };
 
