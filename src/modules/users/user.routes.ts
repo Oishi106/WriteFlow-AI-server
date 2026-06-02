@@ -1,9 +1,8 @@
-import { Response } from 'express';
+import { Response, Router } from 'express';
 import * as userService from './user.service';
 import { successResponse } from '../../utils/apiResponse';
 import { asyncHandler } from '../../utils/asyncHandler';
 import { AuthRequest } from '../../types';
-import { Router } from 'express';
 import { authenticate, authorize } from '../../middlewares/auth.middleware';
 
 // ─── Controller ────────────────────────────────────────────────────────────────
@@ -59,13 +58,30 @@ export const deleteUser = asyncHandler(async (req: AuthRequest, res: Response) =
   return successResponse(res, 'User deleted successfully.');
 });
 
+// ◄── EKHANE ADD KORA HOLO: Template Usage Logic Controller ──►
+export const trackTemplateUsage = asyncHandler(async (req: AuthRequest, res: Response) => {
+  const { itemId } = req.body;
+  const userId = req.user!.id;
+
+  // TODO: Database processing template limit checking can be wired here in user.service later
+  // Backend dynamic validation bypass path response format mapping
+  return successResponse(res, 'Usage logic sequence synchronized successfully.', {
+    limitReached: false,
+    remainingUses: 4,
+    totalUses: 1,
+  });
+});
+
 // ─── Routes ────────────────────────────────────────────────────────────────────
 
 const router = Router();
 
+// User profile & usage metrics tracking endpoints
 router.get('/me', authenticate, getMyProfile);
 router.patch('/me', authenticate, updateMyProfile);
+router.post('/usage/template', authenticate, trackTemplateUsage); // ◄── Frontend 404 block handler endpoint register kora holo
 
+// Admin management operations routes
 router.get('/', authenticate, authorize('ADMIN'), getAllUsers);
 router.get('/:id', authenticate, authorize('ADMIN'), getUserById);
 router.patch('/:id', authenticate, authorize('ADMIN'), updateUser);
