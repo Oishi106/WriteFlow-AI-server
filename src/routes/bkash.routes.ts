@@ -157,7 +157,8 @@ router.get('/callback', async (req: Request, res: Response) => {
     } catch (err: any) {
       console.error('bKash callback execute failed:', err.response?.data || err.message);                           
       return res.redirect(`${config.frontendUrl}/payment-failed`);                            
-    }
+    }                            
+    
   }
 
   return res.redirect(`${config.frontendUrl}/payment-failed`);                        
