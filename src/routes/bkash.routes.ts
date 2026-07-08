@@ -155,12 +155,13 @@ router.get('/callback', async (req: Request, res: Response) => {
         `${config.frontendUrl}/payment-failed?reason=${executeResponse.data?.errorMessage || 'uncompleted'}`
       );
     } catch (err: any) {
-      console.error('bKash callback execute failed:', err.response?.data || err.message);
-      return res.redirect(`${config.frontendUrl}/payment-failed`);
+      console.error('bKash callback execute failed:', err.response?.data || err.message);                           
+      return res.redirect(`${config.frontendUrl}/payment-failed`);                            
     }
   }
 
-  return res.redirect(`${config.frontendUrl}/payment-failed`);
+  return res.redirect(`${config.frontendUrl}/payment-failed`);                        
 });
 
 export default router;
+
